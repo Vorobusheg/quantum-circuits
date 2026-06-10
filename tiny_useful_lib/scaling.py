@@ -17,58 +17,6 @@ from matplotlib.ticker import FuncFormatter
 from scipy.optimize import minimize
 from scipy.optimize import dual_annealing
 from scipy.linalg import cosm, expm, sqrtm, det
-from QuantumCircuits.tiny_useful_lib.main import *
-
-
-# fun for searching of proper fluxonium 
-
-def fluxonium_coup(f01, alpha, bounds=[(2, 100), (0.4, 1.5), (0.2, 6)]):
-
-    def fun(x):
-        eigval, _, q = Fluxonium(x[0], x[1], x[2], gridSize=60, numOfLvls=3, F=0)
-        return (eigval[1] - f01)**2 + (eigval[2] - 2*eigval[1] - alpha)**2 - 0.001*abs(q[0, 1])**2
-    
-    opt1 = minimize(fun, x0=[4, 1.5, 4], bounds=bounds)
-    opt2 = minimize(fun, x0=[3, 1, 4], bounds=bounds)
-    opt3 = minimize(fun, x0=[4, 1, 6], bounds=bounds)
-
-    loss = np.asarray([opt1.fun, opt2.fun, opt3.fun])
-    x = np.asarray([opt1.x, opt2.x, opt3.x])
-    
-    return x[np.argmin(loss)]
-
-def fluxonium_search(f01, f12, f03, bounds=[(2, 100), (0.5, 1.5), (0.2, 6)], weights=[1, 1, 1]):
-
-    
-    def fun(x):
-        eigval, _, _ = Fluxonium(x[0], x[1], x[2], F=0.5)
-        loss=weights[0]*(eigval[1] - f01)**2 +\
-             weights[1]*(eigval[2] - eigval[1] - f12)**2 +\
-             weights[2]*(eigval[3] - f03)**2
-        return loss
-    
-    opt1 = minimize(fun, x0=[4, 1.5, 4], bounds=bounds)
-    opt2 = minimize(fun, x0=[3, 1, 4], bounds=bounds)
-    opt3 = minimize(fun, x0=[4, 1, 6], bounds=bounds)
-    loss = np.asarray([opt1.fun, opt2.fun, opt3.fun])
-    x = np.asarray([opt1.x, opt2.x, opt3.x])
-    
-    return x[np.argmin(loss)]
-
-
-# fun for searching of proper transmon
-
-def transmon_search(f01, alpha, bounds=[(2, 100), (0.01, 3)]):
-
-    def fun(x):
-        eigval, _, q = Transmon(x[0], 0, x[1], numOfLvls=5)
-        return (eigval[1] - f01)**2 + (eigval[2] - 2*eigval[1] - alpha)**2
-    
-    opt1 = minimize(fun, x0=[40, 1.5], bounds=bounds)
-    loss = np.asarray([opt1.fun])
-    x = np.asarray([opt1.x])
-    
-    return x[np.argmin(loss)]
 
 
 # fun for couplers zz optimization
