@@ -135,7 +135,7 @@ def Z_of_osc(El, Ec):
        
        Returns: Z : Ω
     """
-    return float(hbar/e**2*np.sqrt(Ec/El/2))
+    return hbar/e**2*np.sqrt(Ec/El/2)
 
 
 def f_of_osc(El, Ec):
@@ -148,7 +148,7 @@ def f_of_osc(El, Ec):
        
        Returns: f : GHz
     """
-    return float(np.sqrt(8*Ec*El))
+    return np.sqrt(8*Ec*El)
 
 
 def Z_of_cpw(f, L, c, Z_l, Z_0=50):
@@ -231,7 +231,7 @@ def n_zpf(Z):
        Parameters: Z : Ω
        Returns: n_zpf : float
     """
-    return float(np.sqrt(hbar/(8*e**2)/ Z))
+    return np.sqrt(hbar/(8*e**2)/ Z)
 
 
 def phi_zpf(Z):
@@ -241,7 +241,7 @@ def phi_zpf(Z):
        Parameters: Z : Ω
        Returns: phi_zpf : float
     """
-    return float(np.sqrt(2*e**2/hbar * Z))
+    return np.sqrt(2*e**2/hbar * Z)
 
 
 def Ej_of_R(R, delta=0.204):
@@ -286,7 +286,7 @@ def Ej_of_F_SQUID(Ej_1, Ej_2, F):
     gamma = Ej_2/Ej_1
     d = (gamma - 1)/(gamma + 1)
     Ej = (Ej_1 + Ej_2)*np.sqrt(np.cos(np.pi*F)**2 + d**2 * np.sin(np.pi*F)**2)
-    return float(Ej)
+    return Ej
 
     
 def F_of_Ej_SQUID(Ej_1, Ej_2, Ej):
@@ -310,7 +310,7 @@ def F_of_Ej_SQUID(Ej_1, Ej_2, Ej):
     d = (gamma - 1)/(gamma + 1)
     Phi = np.arcsin(np.sqrt((Ej**2 - (Ej_1 + Ej_2)**2)/(Ej_1 + Ej_2)**2/(d**2 - 1)))
 
-    return float(Phi/np.pi)
+    return Phi/np.pi
 
 
 def kappa_0(f, pin_q, Z=50):
@@ -340,7 +340,7 @@ def kappa_0(f, pin_q, Z=50):
     """
 
     kappa_0 = 4*np.pi*f*Z/hbar * (pin_q*2*np.pi*hbar*1e12)**2
-    return float(kappa_0)
+    return kappa_0
 
 
 def N_termal(f, T):
@@ -357,7 +357,7 @@ def N_termal(f, T):
        N : float
     """
     N = 1/(np.exp(hbar*2*np.pi*f*1e9/(k_b*T*1e-3)) - 1)
-    return float(N)
+    return N
 
 
 def pin_q_of_C(C_pin, C):
