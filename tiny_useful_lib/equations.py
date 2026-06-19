@@ -542,7 +542,49 @@ def kappa_reso_via_purcell_filter(f, f_p, C_0, C_p, C, C_l, C_in=None, C_out=Non
 
     return kappa
 
-    
+
+def purcell_bandpass_filter_factor_eq(f_q, f_r, f_f, kappa_f):
+    """
+       compute factor F=kappa_q/kappa_r for resonator filtered by pandpass purcell filter, 
+       where kappa_q - kappa of the readout reso seen by qubit, and
+       kappa_r - kappa of the same reso seen by line (readout kappa)
+       equation can be found in DOI: https://doi.org/10.1103/PhysRevA.92.012325
+        
+       Parameters:
+       f_q : qubit dressed frequency, GHz
+       f_r : resonator dressed frequency, GHz
+       f_f : filter dressed frequency, GHz
+       kappa_f : filter bandwith, 2pi*GHz
+
+       Returns:
+       F : kappa_q/kappa_r factor, to get purcell limit of the qubit one
+       needs to use additional factor K between readout reso kappa and
+       qubit kappa. The result is QUBIT KAPPA = K*F*KAPPA_R
+       
+    """
+    F = (1 + (4*np.pi*(f_r - f_f)/kappa_f)**2)/(1 + (4*np.pi*(f_q - f_f)/kappa_f)**2)
+    return F
+
+
+def kappa_reso_via_purcell_filter_eq_g(f_r, f_f, g, kappa_f):
+    """
+       compute kappa of a readout resonator connected to the line via bandpass purcell filter,
+       useing equation from DOI: https://doi.org/10.1103/PhysRevA.92.012325
+        
+       Parameters:
+       f_r : resonator dressed frequency, GHz
+       f_f : filter dressed frequency, GHz
+       g : filter-resonator coupling in the form g*(a + at)*(b + bt)
+       kappa_f : filter bandwith, 2pi*GHz
+
+       Returns:
+       kappa_r : reqdot resonator bandwith, 2pi*GHz
+       
+    """
+    kappa = 4*g**2/kappa_f * 1/(1 + (4*np.pi*(f_r - f_f)/kappa_f)**2)
+    return kappa
+
+        
 def C_of_Ej(Ej, Ej_to_S=400, C_to_S=45):
     """
        Parameters:
