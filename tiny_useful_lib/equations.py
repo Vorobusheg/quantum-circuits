@@ -636,7 +636,7 @@ def purcell_kappa_factor_eq_simple(f_q, f_r, g_n):
     return (g_n/(f_q - f_r))**2
 
 
-def bbq_resonances_of_Y(f, Y, L, C):
+def bbq_resonances_of_Y(f, Y, L, C, jump_factor=8):
     """
        Part of black box quantization, find resonances based on
        admittance Y(omega) + 1/(i*omega*L) + i*omega*C
@@ -648,6 +648,9 @@ def bbq_resonances_of_Y(f, Y, L, C):
            admittance seen by JJ
        L : JJ inductance, nH
        C : JJ capacitance, fF
+       jump_factor : float,
+           defines maximal slope near valid roots 
+           (increase for narrow peaks)
 
        Returns:
        roots : 1D np.array, GHz
@@ -661,7 +664,7 @@ def bbq_resonances_of_Y(f, Y, L, C):
     
     for n in range(Y_im.shape[0] - 1):
 
-        if(Y_im[n+1]*Y_im[n] < 0 and np.abs((Y_im[n+1]-Y_im[n])) < avd/Y_im.shape[0]*5):
+        if(Y_im[n+1]*Y_im[n] < 0 and np.abs((Y_im[n+1]-Y_im[n])) < avd/Y_im.shape[0]*jump_factor):
             roots.append((f[n+1]+f[n])/2)
 
     return np.asarray(roots)
