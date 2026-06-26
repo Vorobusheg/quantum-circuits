@@ -373,9 +373,10 @@ def mix_oscillators(f, g):
 
        f : 1D-array, GHz
            oscillators frequencies
-       g : 2D-array, GHz
+       g : 2D-array or float, GHz
            upper-triangle matrix, where 
            g_ij = coupling between i and j modes
+           (in case of two modes single g value is acceptable)
 
        Returns:
 
@@ -391,7 +392,12 @@ def mix_oscillators(f, g):
     """
     # define hamiltonian matrices in mode basis
     f = np.copy(np.asarray(f))
-    g = np.copy(np.asarray(g))
+    if(type(g) == list or type(g) == np.array):
+    	g = np.copy(np.asarray(g))
+    else:
+	g = np.asarray([[0, g],
+                        [0, 0]])
+	
     
     F_0 = np.diag(f)
     G = F_0 + 2*(g + np.transpose(g))
