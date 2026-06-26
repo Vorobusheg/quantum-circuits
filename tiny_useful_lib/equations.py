@@ -635,3 +635,34 @@ def purcell_kappa_factor_eq_simple(f_q, f_r, g_n):
     """
     return (g_n/(f_q - f_r))**2
 
+
+def bbq_resonances_of_Y(f, Y, L, C):
+    """
+       Part of black box quantization, find resonances based on
+       admittance Y(omega) + 1/(i*omega*L) + i*omega*C
+       
+       Parameters:
+       f : 1D np.array, GHz
+           frequencies for Y(f)
+       Y : 1D np.array, Ω
+           admittance seen by JJ
+       L : JJ inductance, nH
+       C : JJ capacitance, fF
+
+       Returns:
+       roots : 1D np.array, GHz
+           resonant frequencies
+    """
+    Y_im = np.imag(Y) - 1/(2*np.pi*L*f) + 2*np.pi*C*1e-6*f
+    roots = []
+    avd = 0
+    
+    for n in range(Y_im.shape[0] - 1): avd += np.abs((Y_im[n+1]-Y_im[n]))
+    
+    for n in range(Y_im.shape[0] - 1):
+
+        if(Y_im[n+1]*Y_im[n] < 0 and np.abs((Y_im[n+1]-Y_im[n])) < avd/Y_im.shape[0]*5):
+            roots.append((f[n+1]+f[n])/2)
+
+    return np.asarray(roots)
+    
