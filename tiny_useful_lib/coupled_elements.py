@@ -1,6 +1,7 @@
 import numpy as np
 from .math import kron, dagger
 from scipy.sparse.linalg import eigsh
+from scipy.linalg import eigh
 
 
 def dressed_states_map(states, dim, get_strings=False, minimal_st_impact=0.002):
@@ -361,6 +362,59 @@ def mix_three_sys(spectrum_1, spectrum_2, spectrum_3, V_12=None, V_13=None, V_21
         output.append(new_operators_3)
             
     return output
+
+
+def mix_oscillators(f, g):
+    """
+       Diagonalize system of oscillators coupled via XX quadratures
+       with g in form 2*g*XX = g*(at + a)(bt + b)
+
+       Parameters:
+
+       f : 1D-array, GHz
+           oscillators frequencies
+       g : 2D-array, GHz
+           upper-triangle matrix, where 
+           g_ij = coupling between i and j modes
+
+       Returns:
+
+       f_dressed : 1D np.array, GHz
+           dressed oscillators frequencies
+       X_dressed : 2D np.array
+           X quadratures of dressed modes in basis 
+           of bare bodes X quadratures (columns)
+       Y_dressed : 2D np.array
+           P quadratures of dressed modes in basis 
+           of bare modes P quadratures (columns)
+       
+    """
+    # define hamiltonian matrices in mode basis
+    f = np.copy(np.asarray(f))
+    g = np.copy(np.asarray(g))
+    
+    F_0 = np.diag(f)
+    G = F_0 + 2*(g + np.transpose(g))
+
+    # diagonalization
+    Fr = np.sqrt(F_0)
+    spec, vec = eigh(Fr @ G @ Fr)
+
+    # solution
+    if np.all(spec > 0):      
+        f_dressed = np.sqrt(spec)
+    elif np.all(spec > 0):
+        f_dressed = np.sqrt(spec+0j)
+        print('CAUTION, SOFT MODE CASE')
+    else:
+        f_dressed = np.sqrt(spec+0j)
+        print('CAUTION, UNSTABLE CASE')
+
+    F_1 = np.diag(f_dressed)   
+    X_dressed = np.sqrt(F_1)@vec@np.linalg.inv(np.sqrt(F_0))
+    Y_dressed = np.linalg.inv(np.sqrt(F_1))@vec@np.sqrt(F_0)
+
+    return f_dressed, X_dressed, Y_dressed
 
 
 # class for combining a set of many key-arrays
