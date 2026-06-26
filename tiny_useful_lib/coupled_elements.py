@@ -395,8 +395,7 @@ def mix_oscillators(f, g):
     if(type(g) == list or type(g) == np.array):
     	g = np.copy(np.asarray(g))
     else:
-	g = np.asarray([[0, g],
-                        [0, 0]])
+	g = np.asarray([[0, g], [0, 0]])
 	
     
     F_0 = np.diag(f)
