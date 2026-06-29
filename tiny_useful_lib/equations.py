@@ -433,114 +433,56 @@ def kappa_osc_to_line(f, C_0, C, C_in=None, C_out=None, Z_in=50, Z_out=50, mode_
     return kappa*1e-9
     
 
-def kappa_reso_via_purcell_filter_eq(f, f_p, C, C_in, kappa_p, Z_p, regime='half', Z_0=50, f_mod=False, kappa_mod=False):
+def kappa_osc_via_bandpass_eq(f_r, f_f, g, kappa_f, method='Heinsoo', C_in=0, Z_0=50):
     """
-       compute kappa of a readout resonator connected to the line via filtering resonator as follows:
+       compute kappa of a readout resonator seen by feedline via bandpass purcell filter.
+       Two equations based on input-output theory are available:
+       1) derived by J.Heinsoo from DOI: https://doi.org/10.1103/PhysRevApplied.10.034040
+       2) derived by E.A.Sete from DOI: https://doi.org/10.1103/PhysRevApplied.10.034040
+       first model gives results closer to straighforward microwave approach (via admittance),
+       espetially for small filter kappas < 100 MHz
 
-       Z_0 --- C_in --- --- Z_0
-                       |
-                 purcell filter
-               reso (f_p, kappa_p)
-                       |       
-                       C
-                       |
-                 readout reso (f)
+                       Heinsoo model                         Sete model
 
-       PURCELL FILTER FREQUENCY MUST INCLUDE SHIFT CAUSED BY COUPOLING WITH LINE!!!
-
-       the kappa is computed as:
-       kappa = 1/2*(kappa_p - Re{np.sqrt(-16 * J**2 + (kappa_p - 2j*(omega_p - omega))**2)} )
-       derived in DOI: https://doi.org/10.1103/PhysRevApplied.10.034040
-       
+       feedline IN --- C_in --- --- feedline OUT              feedline
+                               |                                  |
+                         purcell filter                     purcell filter
+                         (f_f, kappa_f)                     (f_f, kappa_f)
+                               |                                  |       
+                               g                                  g
+                               |                                  |
+                        readout reso (f_r)                 readout reso (f_r)
+                        
        Parameters:
-       f, f_p : GHz
-       C, C_in : fF
-       kappa_p : 2*np.pi*GHz, kappa of the filtering resonator
-           can be computed both including and excluding C_in
-       Z_p : characteristic impedance of the filtering oscillator
-       regime : 'half' or 'quarter', defines resonator type
-       Z_0 : Ω
-       f_mod : bool, if True modifes f_p depending on C_in
-       kappa_mod : bool, if True modifes kappa_p depending on C_in
-       
+       f_r : resonator frequency, GHz
+       f_f : filter frequency, GHz - MUST INCLUDE SHIFT BY FEEDLINE!!!
+       g : filter-resonator coupling in the form g*(a + at)*(b + bt), GHz
+       kappa_f : filter bandwith, 2pi*GHz
+       method : "Heinsoo" (default) or "Sete"
+       C_in : input capacitor, fF
+       Z_0 : feadline impedance, Ω
+
        Returns:
-       kappa : 2*np.pi*GHz
-    """
-    omega = 2*np.pi*f*1e9
-    omega_p = 2*np.pi*f_p*1e9
+       kappa_r : reqdot resonator bandwith, 2pi*GHz              
 
-    gamma = 1/(1 + 2j*omega_p*Z_0*C_in*1e-15)
+    """ 
+    w_r = 2*np.pi*f_r
+    w_f = 2*np.pi*f_f
+    J = 2*np.pi*g
 
-    if(kappa_mod):
-        kappa_p_new = kappa_p*1e9*(1 + np.real(gamma))/2
+    if(method=='Heinsoo'):
+        # input capacitor impact
+        gamma = 1/(1 + 2j*w_f*Z_0*C_in*1e-6)
+        w_f = w_f + kappa_f*np.imag(gamma)/4
+        kappa_f_mod = kappa_f*(1 + np.real(gamma))/2
+    
+        kappa_r = (kappa_f_mod - np.real(np.sqrt(-16 * J**2 + (kappa_f_mod - 2j*(w_f - w_r))**2)))/2
+    elif(method=='Sete'):
+        kappa_r = 4 * J**2 / kappa_f / (1 + (2*(w_r - w_f)/kappa_f)**2)
     else:
-        kappa_p_new = kappa_p*1e9
-
-    if(f_mod):
-        omega_p_new = omega_p + kappa_p*1e9*np.imag(gamma)/4
-    else:
-        omega_p_new = omega_p
-
-    # coupling strength
-    g = g_of_C(C, C_of_resonator_mode(f, regime=regime), 1e15/(omega_p*Z_p))
-    J = np.abs(g*n_zpf(Z_of_resonator_mode(regime=regime))*n_zpf(Z_p))*2*np.pi*1e9
-
-    kappa = (kappa_p_new - np.real(np.sqrt(-16 * J**2 + (kappa_p_new - 2j*(omega_p_new - omega))**2)))/2
-
-    return kappa*1e-9
-
-
-def kappa_reso_via_purcell_filter(f, f_p, C_0, C_p, C, C_l, C_in=None, C_out=None, Z_in=50, Z_out=50):
-    """
-       compute classical kappa for an oscillator connected to the line via capacitance C
-
-       Z_in --- C_in --- --- C_out --- Z_out
-                        |                              Z_e
-                       C_l                      -->     |
-                        |                             L&C_0
-                     L_p&C_p
-                        | 
-                        C
-                        |
-                      L&C_0
-                       
-       compute effective impedance Z_e, and admittance Y=1/Z_e,
-       and then get kappa = Re{Y}/(C_0 + Im{Y}'/2)
-       DOI: 10.1103/RevModPhys.93.025005
-       DOI: 10.1103/PhysRevLett.108.240502
-
-       Parameters: 
-       f : GHz, oscillator frequency
-       f_p : GHz, purcell filter frequency
-       C_0, C_p, C, C_l, C_in, C_out : fF
-       Z_in, Z_out : Ω
-
-       Retutns:
-       kappa : 2pi*GHz
-    """
-    omega = 2*np.pi*f*1e9
-    omega_p = 2*np.pi*f_p*1e9
-    L_p = 1/(omega_p**2 * C_p*1e-15)
-    
-    def Y(x):
-    
-        Z_1 = Z_in
-        Z_2 = Z_out
+        raise ValueError('Invalid method name')
         
-        if(C_in!=None):  Z_1 = Z_1 + 1/(1j*x*C_in*1e-15)
-        if(C_out!=None): Z_2 = Z_2 + 1/(1j*x*C_out*1e-15)
-     
-        Z_p = 1/(1j*x*C_l*1e-15) + 1/(1/Z_1 + 1/Z_2)   
-        Z_e = 1/(1j*x*C*1e-15) + 1/(1/Z_p + 1j*x*C_p*1e-15 + 1/(1j*x*L_p))
-        
-        return 1/Z_e
-
-    def Y_im(x): return np.imag(Y(x))       
-    Y_d = nd.Derivative(Y_im, order=4)
-    
-    kappa = np.real(Y(omega))/(C_0*1e-15 + Y_d(omega)/2)*1e-9
-
-    return kappa
+    return kappa_r
 
 
 def purcell_bandpass_filter_factor_eq(f_q, f_r, f_f, kappa_f):
@@ -565,25 +507,6 @@ def purcell_bandpass_filter_factor_eq(f_q, f_r, f_f, kappa_f):
     F = (1 + (4*np.pi*(f_r - f_f)/kappa_f)**2)/(1 + (4*np.pi*(f_q - f_f)/kappa_f)**2)
     return F
 
-
-def kappa_reso_via_purcell_filter_eq_g(f_r, f_f, g, kappa_f):
-    """
-       compute kappa of a readout resonator connected to the line via bandpass purcell filter,
-       useing equation from DOI: https://doi.org/10.1103/PhysRevA.92.012325
-        
-       Parameters:
-       f_r : resonator dressed frequency, GHz
-       f_f : filter dressed frequency, GHz
-       g : filter-resonator coupling in the form g*(a + at)*(b + bt)
-       kappa_f : filter bandwith, 2pi*GHz
-
-       Returns:
-       kappa_r : reqdot resonator bandwith, 2pi*GHz
-       
-    """
-    kappa = 4*g**2/kappa_f * 1/(1 + (4*np.pi*(f_r - f_f)/kappa_f)**2)
-    return kappa
-
         
 def C_of_Ej(Ej, Ej_to_S=400, C_to_S=45):
     """
@@ -598,42 +521,34 @@ def C_of_Ej(Ej, Ej_to_S=400, C_to_S=45):
     return Ej/Ej_to_S*C_to_S
 
 
-# equation to get purcell factor k: kappa_transmon = k*kapppa_reso
-def purcell_kappa_factor_eq(f_q, f_r, g_n):
+def purcell_kappa_factor_eq(f_q, f_r, g, method='Yen'):
     """
        compute purcell kappa factor with oscillator equation (works for transmon):
-       k = (g/(f_q - f_r))**2 * (f_q/f_r)**3 * (2*f_q/(f_q + f_r))**2
-       kappa_purcell = k*kappa_reso
-       derived in DOI:https://doi.org/10.1103/PhysRevApplied.23.024068
+       1) derived by Yen: K = (g/(f_q - f_r))**2 * (f_q/f_r)**3 * (2*f_q/(f_q + f_r))**2
+          from DOI:https://doi.org/10.1103/PhysRevApplied.23.024068
+       2) classical one: K = (g/(f_q - f_r))**2
+          from DOI: https://doi.org/10.1103/RevModPhys.93.025005
+
+       note that qubit purcell kappa = K*kappa_reso
 
        Parameters:
-       f_q : GHz
-       f_r : GHz
-       g_n : GHz
-           this g should include matrix elements! (g_c*n*n -> g_n)
+       f_q : qubit frequency, GHz
+       f_r : resonator frequency, GHz
+       g : qubit-resonator coupling in the form g*(a + at)*(b + bt) ~ g*(a + at)*σx, GHz
+       method : 'Yen' (default) or 'Classic'
 
        Returns:
-       k : int
+       K : kappa factor, float
     """
-    return (g_n/(f_q - f_r))**2 * (f_q/f_r)**3 * (2*f_q/(f_q + f_r))**2
 
-
-def purcell_kappa_factor_eq_simple(f_q, f_r, g_n):
-    """
-       compute purcell kappa factor with stupid equation:
-       k = (g/(f_q - f_r))**2
-       kappa_purcell = k*kappa_reso
-
-       Parameters:
-       f_q : GHz
-       f_r : GHz
-       g : GHz
-           this g should include matrix elements! (g_c*n*n -> g_n)
-
-       Returns:
-       k : int
-    """
-    return (g_n/(f_q - f_r))**2
+    if(method=='Yen'):
+        K = (g/(f_q - f_r))**2 * (f_q/f_r)**3 * (2*f_q/(f_q + f_r))**2
+    elif(method=='Classic'):
+        K = (g/(f_q - f_r))**2
+    else:
+        raise ValueError('Invalid method name')      
+    
+    return K
 
 
 def bbq_resonances_of_Y(f, Y, L, C, jump_factor=8):
