@@ -222,7 +222,7 @@ def transmon(Ej, Ec, truncation=10, grid=None, Q=0, rounding=True):
     return (spectrum, phi, n)
 
 
-def transmon_search(f01, alpha, bounds=[(2, 100), (0.01, 3)], x0=[40, 1.5], truncation=5):
+def transmon_search(f01, alpha, bounds=[(2, 100), (0.05, 0.8)], x0=[40, 0.2], truncation=5):
     """
        find energies of transmon, which has given f01 and anharmonicity,
        using scipy.optimize.minimize
