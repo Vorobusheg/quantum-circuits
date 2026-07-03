@@ -583,4 +583,117 @@ def bbq_resonances_of_Y(f, Y, L, C, jump_factor=8):
             roots.append((f[n+1]+f[n])/2)
 
     return np.asarray(roots)
+
+
+def purcell_bandpass_filter_scattering_eq(f, f_a, f_b, g, kappa_a, kappa_b, gamma_a, gamma_b, regime='pass', 
+                                          C_in=None, dist_by_lambda=None, Z_0=50, osc_modes=False):
+    """
+       compute scattering matrix for 3-port network with 
+       readout resonator (a) coupled to a feedline via 
+       bandpass purcell filter (b). The network scheme:
+
+       port 1 --- C_in (optional) --- --- port 0
+                                     |
+                              purcell filter
+                         (f_a, kappa_a, gamma_a)
+                                     |       
+                                     g
+                                     |
+                                readout reso 
+                          (f_b, kappa_b, gamma_b)
+                                     |
+                                   port 2
+
+       This model is inspired by one decribed by J. Heinsoo in 
+       DOI: https://doi.org/10.1103/PhysRevApplied.10.034040
+       but includes MISSING phase asquired by wave between
+       the input capavitor and filter connector!
+       
+       Parameters:
+       
+       f : signal frequency, GHz
+       f_a : filter frequency, GHz (shifted by feedline)
+       f_b : readout resonator frequency, GHz (shifted by qubit)
+       g : readout reso to filter coupling, GHz
+       kappa_a : kappa of filter to feedline, 2π*GHz
+       kappa_b : KAPPA OF READ RESO TO QUBIT, 2π*GHz
+       gamma_a/b : inner loss of filter/read reso, 2π*GHz
+       regime : str
+           defines state of port 1 input:
+           'pass' – port 1 connected directly without capacitor (default)
+           'capacitor' – port 1 connected via capacitor C_in
+           'cut' – port 1 is not connected at all
+       osc_modes : bool
+           return vectors of a and b steady states to input signals
+       
+       Parameters for regime='capacitor':
+       
+       C_in : capacitance of input capacitor, fF
+       dist_by_lambda : fraction of FILTER wavelength 
+           distance bettwen input capacitor and filter to feedline connector
+       Z_0 : feedline impedance, Ω
+
+       Returns:
+       S : scattering matrix, 2-D np.array
+       a_v : oscillator steady state vector, 1-D np.array
+       b_v : oscillator steady state vector, 1-D np.array
+       
+    """
+
+    # shape modifier in case of f is an numpy array
+    try: e = np.ones(f.shape)
+    except: e = 1
+    
+    w = 2*np.pi*f
+    w_a = 2*np.pi*(f_a - f)
+    w_b = 2*np.pi*(f_b - f)
+    J = 2*np.pi*g
+
+    # port 1 line configurating
+    if(regime=='capacitor'):
+        # phase accumulating between C_in and the reso connector
+        phi = 2*np.pi*dist_by_lambda*f/f_a
+        # input capacitor reflection
+        gamma = 1/(1 + 2j*w*Z_0*C_in*1e-6)
+        w_a_m = w_a + kappa_a/4*np.imag(gamma*np.exp(2j*phi))
+        kappa_a_m = kappa_a/2*(1 + np.real(gamma*np.exp(2j*phi)))
+    
+    elif(regime=='pass'):
+        phi = 0*e
+        gamma = 0*e
+        w_a_m = w_a
+        kappa_a_m = kappa_a/2
+        
+    elif(regime=='cut'):
+        phi=0*e
+        gamma=1*e
+        w_a_m = w_a
+        kappa_a_m = kappa_a
+    else:
+        raise ValueError('Invalid regime, choose between: pass, cut, capacitor')
+
+    # supportive variables
+    d_a = 2j*w_a_m + kappa_a_m + gamma_a
+    d_b = 2j*w_b + kappa_b + gamma_b
+        
+    # building S matrix in basis (1, 2, 3)
+    a_v = np.asarray([d_b*np.sqrt(kappa_a)*(1 + gamma*np.exp(2j*phi)),
+                      d_b*np.sqrt(kappa_a)*(1 - gamma)*np.exp(1j*phi),
+                      -4j*J*np.sqrt(kappa_b)*e])/(4*J**2 + d_a*d_b)
+
+    b_v = np.asarray([-2j*J*np.sqrt(kappa_a)*(1 + gamma*np.exp(2j*phi))*e,
+                      -2j*J*np.sqrt(kappa_a)*(1 - gamma)*np.exp(1j*phi)*e,
+                      2*np.sqrt(kappa_b)*d_a])/(4*J**2 + d_a*d_b)
+
+    S = np.asarray([[gamma*np.exp(2j*phi), (1 - gamma)*np.exp(1j*phi), 0*e],
+                    [(1 - gamma)*np.exp(1j*phi), gamma, 0*e],
+                    [0*e, 0*e, 1*e]])
+
+    S = S - np.asarray([np.sqrt(kappa_a)/2*(1 + gamma*np.exp(2j*phi))*a_v,
+                        np.sqrt(kappa_a)/2*(1 - gamma)*np.exp(1j*phi)*a_v,
+                        np.sqrt(kappa_b)*b_v])
+
+    if(osc_modes): return S, a_v, b_v
+    else: return S
+    
     
