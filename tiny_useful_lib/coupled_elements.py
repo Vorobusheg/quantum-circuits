@@ -392,7 +392,7 @@ def mix_oscillators(f, g):
     """
     # define hamiltonian matrices in mode basis
     f = np.copy(np.asarray(f))
-    if(type(g) == list or type(g) == np.array):
+    if(type(g) == list or type(g) == np.ndarray):
         g = np.copy(np.asarray(g))
     else:
         g = np.asarray([[0, g], [0, 0]])

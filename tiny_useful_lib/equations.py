@@ -877,6 +877,8 @@ def kappa_osc_via_osc_eq(f_a, f_b, g, kappa_a, regime='capacitor', C_in=0, dist_
        
        gamma = 1/(1 - 2j*w_b*Z_0*C_in)
        phi = 2*np.pi*dist_by_lambda*w_b/w_a
+
+       CAUTION: linear coupling between the modes in input-output inherently assumes RWA
     
        Parameters:
        f_a,b : frequency, GHz (dressed by "single Z_0 port" and a-b capacitor shift)
@@ -897,9 +899,9 @@ def kappa_osc_via_osc_eq(f_a, f_b, g, kappa_a, regime='capacitor', C_in=0, dist_
        IF mode_info=False
        kappa_b : GHz
        IF mode_info=True
-       [kappa_a, kappa_b] : np.array, GHz
-       [freq_a, freq_b] : np.array, GHz
-       [p_b_a, p_b_b] : np.array, float in [0, 1],
+       kappas : np.array, GHz
+       freqs : np.array, GHz
+       participations : np.array, float in [0, 1],
            fraction of B-oscillator in new "a" and "b" modes
        
 
@@ -953,11 +955,15 @@ def kappa_osc_via_osc_eq(f_a, f_b, g, kappa_a, regime='capacitor', C_in=0, dist_
     k_new = np.asarray([k_a_new, k_b_new])
     w_new = np.asarray([w_a_new, w_b_new])
     p_b = np.asarray([p_b_a_new, p_b_b_new])
+
+    k_new = k_new[np.argsort(w_new)]
+    p_b = p_b[np.argsort(w_new)]
+    w_new = w_new[np.argsort(w_new)]
     
     if(mode_info):
         return k_new/2/np.pi, w_new/2/np.pi, p_b
     else:
-        return k_new[1]/2/np.pi
+        return k_b_new/2/np.pi
 
     
 def bbq_resonances_of_Y(f, Y, L, C, tolY=1e-12, jump_factor=8, method='complex', kappas=False):
@@ -999,7 +1005,7 @@ def bbq_resonances_of_Y(f, Y, L, C, tolY=1e-12, jump_factor=8, method='complex',
             Y_inter = AAA(f.astype(complex), Y)
             z = find_Y_zeros(Y_inter, band=[f[0], f[-1]], tolY=tolY)
             roots = np.real(z)
-            kappas = 2*np.imag(z)
+            kappas_list = 2*np.imag(z)
         else:
             raise ValueError('No AAA interpolatr, update scipy (>1.15)!')
             
@@ -1017,7 +1023,7 @@ def bbq_resonances_of_Y(f, Y, L, C, tolY=1e-12, jump_factor=8, method='complex',
         raise ValueError('Invalid method')
 
     if(kappas):
-        return np.asarray(roots), np.asarray(kappas)
+        return np.asarray(roots), np.asarray(kappas_list)
     else:
         return np.asarray(roots)
 
@@ -1041,6 +1047,8 @@ def scattering_osc_eq(f, f_a, kappa_a_0, kappa_a_1, gamma_a, regime='pass',
        response of oscillator => works for f close to f_a
        2) Since input-output theory assums exp(-i*omega*t)
        evolution, proper mw notation is j -> -i !!!
+       3) linear coupling between the modes in input-output 
+       inherently assumes RWA
        
        Parameters:
        
@@ -1371,4 +1379,198 @@ def transmission_line_baring_eq(f, kappa, regime='pass', C_in=None, dist_by_lamb
 
     return w_bare/2/np.pi, k_bare/2/np.pi
 
+
+def kappa_osc_via_2_osc_mw(f_a, f_b, f_c, C_a, C_b, C_c, C, C_ga, C_gb, C_in=None, Z_in=50, Z_out=50,
+                         Z_0=50, dist=0, c_cpw=169, method='zeros', band=None, 
+                         dw_frac=0.1, n_scan=6001, n_aaa=4001, tolY=1e-8):
+    """
+       compute kappas, frequencies, and c-participation for a system 
+       of three oscillators sequentially coupled to feedline as
+       shown in the following:
+       
+       Z_in(w) --- C_in (optional) -------- --- Z_out(w)
+                                     <-->  |
+                                     dist  C
+                                           |
+                                        L_a&C_a
+                                           |
+                                          C_ga
+                                           |
+                                        L_b&C_b
+                                           |
+                                          C_gb
+                                           |
+                                        L_c&C_c
+
+       there are two methods available:
+       1) 'zeros' – computes equivalent Y(w) function (admittance seen 
+           from node c) and searches for its zeros x_k = w_k + i*y_k 
+           -> mode frequency w_k, kappa_k = 2*y_k
+           ADVANTAGE – allow feedline and frequency dependent Z_in/out; 
+           DRAWBACK – can miss roots.
+           DOI: 10.1103/RevModPhys.93.025005
+           DOI: 10.1103/PhysRevLett.108.240502
+           
+       2) 'MNA' – use magic of linear lumped elements and combine effective
+           linear equation (MNA equations in the Laplace domain) to find
+           resonance modes. 
+           ADVANTAGE – vectorized and stable;
+           DRAWBACK – can't handle feedline or complex Z_in/out.
+           ISBN:978-0-442-28108-3
+           
+       Parameters:
+       f_a/b/c : GHz, bare frequencies of oscillators
+       C_a/b/c : fF, oscillator capacitances
+       C, C_ga, C_gb, C_in : fF, coupling capacitances
+       Z_in/out : Ω
+           can be value, or None (for termination), or a function of frequency (complex) in GHz
+       Z_0 : CPW impedance, Ohm
+       dist : distance between C_in and oscillator contact, mm
+           (works only for C_in != None and method='zeros'!)
+       c_cpw : CPW capacitance per length, fF/mm
+       method : can be 'zeros' or 'MNA'
+       band/dw_frac/n_scan/n_aaa=4001/tolY=1e-8 – params of find_Y_zeros 
+           which are described in find_Y_zeros documentation
+       
+       Returns: 
+       kappa_modes : 1-D np.array, GHz, 
+       f_modes : 1-D np.array, GHz,
+       p_c : 1-D np.array, capacitive-energy participation of osc c,
+           p_c = C_c|v_c|^2 / (C_a|v_a|^2 + C_b|v_b|^2 + C_c|v_c|^2)
+           (p_c ~ 1: c-like mode, p_c ~ 0: a/b-like mode)
+       
+    """
+    w_a = 2*np.pi*f_a*1e9
+    w_b = 2*np.pi*f_b*1e9
+    w_c = 2*np.pi*f_c*1e9
+    L_a = 1/(w_a**2 * C_a*1e-15)
+    L_b = 1/(w_b**2 * C_b*1e-15)
+    L_c = 1/(w_c**2 * C_c*1e-15)
+
+    # for terminated lines
+    if Z_in is None: Z_in=float('inf')
+    if Z_out is None: Z_out=float('inf')
+        
+    if(method=='zeros'):
+        def Z_l(x):
+            if(callable(Z_in)): 
+                Z_1 = Z_in(x/2/np.pi/1e9)
+            else:
+                Z_1 = Z_in
+                
+            if(callable(Z_out)): 
+                Z_2 = Z_out(x/2/np.pi/1e9)
+            else:
+                Z_2 = Z_out
+                
+            if C_in is not None:
+                Z_1 = Z_1 + 1/(1j*x*C_in*1e-15)
+                Z_1 = tul.Z_of_cpw(x/2/np.pi/1e9, dist, c_cpw, Z_1, Z_0=Z_0)
+                
+            return 1/(1j*x*C*1e-15) + 1/(1/Z_1 + 1/Z_2)   
+        
+        def Z_nodes(x):
+            """Node-to-ground impedances along the chain at angular frequency x:
+               Z_na – node a, excluding the C_ga branch (line || C_a || L_a)
+               Z_nb – node b, excluding the C_gb branch ((C_ga + Z_na) || C_b || L_b)
+            """
+            Z_na = 1/(1/Z_l(x) + 1j*x*C_a*1e-15 + 1/(1j*x*L_a))
+            Z_nb = 1/(1/(Z_na + 1/(1j*x*C_ga*1e-15)) + 1j*x*C_b*1e-15 + 1/(1j*x*L_b))
+            return Z_na, Z_nb
+        
+        def Y(x):
+            """Total admittance seen from node c (x in GHz)."""
+            x = 2*np.pi*1e9*x
+            Z_na, Z_nb = Z_nodes(x)
+            return 1/(Z_nb + 1/(1j*x*C_gb*1e-15)) + 1j*x*C_c*1e-15 + 1/(1j*x*L_c)
+    
+        def v_ab_over_v_c(x):
+            """Mode voltages v_a, v_b for v_c = 1 from the two capacitive dividers:
+               v_b = v_c * Z_nb/(Z_nb + Z_Cgb),  v_a = v_b * Z_na/(Z_na + Z_Cga)."""
+            x = 2*np.pi*1e9*x
+            Z_na, Z_nb = Z_nodes(x)
+            v_b = Z_nb/(Z_nb + 1/(1j*x*C_gb*1e-15))
+            v_a = v_b*Z_na/(Z_na + 1/(1j*x*C_ga*1e-15))
+            return v_a, v_b
+    
+        if band is None:
+            band = (0.5*min(f_a, f_b, f_c), 1.5*max(f_a, f_b, f_c))
+        uniq = tul.find_Y_zeros(Y, band, dw_frac, n_scan, n_aaa, tolY)
+    
+        # capacitive-energy participation of oscillator c in each mode (v_c = 1)
+        p_c = np.empty(uniq.size)
+        for i, z in enumerate(uniq):
+            v_a, v_b = v_ab_over_v_c(z)
+            E_a = C_a*np.abs(v_a)**2
+            E_b = C_b*np.abs(v_b)**2
+            E_c = C_c
+            p_c[i] = E_c/(E_a + E_b + E_c)
+    
+        f_modes = np.real(uniq)
+        kappas = 2*np.imag(uniq)
+            
+    elif(method=='MNA'):
+        
+        if(callable(Z_in) or callable(Z_out)): 
+            raise ValueError('MNA doesn\'t support f-dependent Z_in/out!')
+            
+        # ---- node map ----
+        # n1: line node; n2/n3/n4: nodes of oscillators a/b/c; ns: Z_in side of C_in
+        if C_in is None:
+            n1, n2, n3, n4 = 0, 1, 2, 3
+            N = 4
+        else:
+            ns, n1, n2, n3, n4 = 0, 1, 2, 3, 4
+            N = 5
+        iLa, iLb, iLc = N, N + 1, N + 2      # inductor currents
+        n = N + 3
+      
+        G = np.zeros((n, n)); Cm = np.zeros((n, n))
+     
+        def g_stamp(a, b, val, M):
+            if a >= 0: M[a, a] += val
+            if b >= 0: M[b, b] += val
+            if a >= 0 and b >= 0: M[a, b] -= val; M[b, a] -= val
+     
+        # source / input branch
+        if C_in is None:
+            g_stamp(n1, -1, 1.0/Z_in, G)
+        else:
+            g_stamp(ns, -1, 1.0/Z_in, G)
+            g_stamp(ns, n1, C_in*1e-15, Cm)
+        # load
+        g_stamp(n1, -1, 1.0/Z_out, G)
+        # chain
+        g_stamp(n1, n2, C*1e-15, Cm)
+        g_stamp(n2, -1, C_a*1e-15, Cm)
+        g_stamp(n2, n3, C_ga*1e-15, Cm)
+        g_stamp(n3, -1, C_b*1e-15, Cm)
+        g_stamp(n3, n4, C_gb*1e-15, Cm)
+        g_stamp(n4, -1, C_c*1e-15, Cm)
+        # inductors (current unknowns)
+        for node, ik, L in ((n2, iLa, L_a), (n3, iLb, L_b), (n4, iLc, L_c)):
+            G[node, ik] += 1.0; G[ik, node] -= 1.0
+            Cm[ik, ik] += L
+     
+        # ---- pencil (G + sC)x = 0 : eigenvalues of -C^{-1}G are s directly ----
+        # (C is always regular here, G is not for open terminations -> invert C)
+        s, vec = np.linalg.eig(-np.linalg.solve(Cm, G))
+        osc = np.imag(s) > 0                       # one of each conjugate pair
+        s = s[osc]; vec = vec[:, osc]
+     
+        # ---- participation of oscillator c in each mode (capacitive energy) ----
+        E_a = C_a*np.abs(vec[n2, :])**2
+        E_b = C_b*np.abs(vec[n3, :])**2
+        E_c = C_c*np.abs(vec[n4, :])**2
+        p_c = E_c/(E_a + E_b + E_c)
+     
+        order = np.argsort(np.imag(s))
+        f_modes = np.imag(s[order])/(2e9*np.pi)
+        kappas = -2*np.real(s[order])/(2e9*np.pi)
+        p_c = p_c[order]
+    
+    else:
+        raise ValueError('Invalid method')
+    
+    return kappas, f_modes, p_c
     
