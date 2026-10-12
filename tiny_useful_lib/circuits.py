@@ -1,10 +1,11 @@
 import numpy as np
 from scipy.optimize import minimize, dual_annealing
 from pandas import DataFrame
+from scipy import constants as const
 
 # physical constants
-e=1.6*1e-19
-hbar=1.05*1e-34
+e=const.elementary_charge
+hbar=const.hbar
                 
 # some staff to manage capacitance-energy matrixes
 

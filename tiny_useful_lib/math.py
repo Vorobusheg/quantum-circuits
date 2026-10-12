@@ -1,5 +1,5 @@
 import numpy as np
-import numdifftools as nd
+# import numdifftools as nd
 from scipy.optimize import dual_annealing
 
 def dagger(a): return np.conjugate(a.transpose())

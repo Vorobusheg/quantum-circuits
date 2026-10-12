@@ -2,6 +2,7 @@ import numpy as np
 import warnings
 import numdifftools as nd
 from scipy.optimize import root, least_squares
+from scipy import constants as const
 try:
     from scipy.interpolate import AAA
     _HAS_AAA = True
@@ -10,9 +11,9 @@ except ImportError:
     warnings.warn("scipy>=1.15 not found: AAA interpolator disabled, ", stacklevel=2)
 
 # physical constants
-e=1.6*1e-19
-hbar=1.05*1e-34
-k_b = 1.380649*1e-23
+e=const.elementary_charge
+hbar=const.hbar
+k_b = const.k
 
 
 def Ec_of_C(C): 
@@ -963,7 +964,7 @@ def kappa_osc_via_osc_eq(f_a, f_b, g, kappa_a, regime='capacitor', C_in=0, dist_
     if(mode_info):
         return k_new/2/np.pi, w_new/2/np.pi, p_b
     else:
-        return k_b_new/2/np.pi
+        return k_new[np.argmax(p_b)]/2/np.pi
 
     
 def bbq_resonances_of_Y(f, Y, L, C, tolY=1e-12, jump_factor=8, method='complex', kappas=False):
