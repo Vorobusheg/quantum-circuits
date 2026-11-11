@@ -1,0 +1,39 @@
+# Makes this repo an installable package, so tiny_useful_lib and tiny_useful_dyn can be
+# imported from any folder without sys.path changes, and Pylance can find them.
+# Install it once in editable mode (the code is then used directly from this folder):
+#     python -m pip install --no-deps -e .
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "quantum-circuits"
+version = "0.1.0"
+description = "Superconducting-circuit helpers (tiny_useful_lib) and qubit dynamic solvers (tiny_useful_dyn)"
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "Andrei Kugut" }]
+requires-python = ">=3.10"
+urls = { Repository = "https://github.com/Vorobusheg/quantum-circuits" }
+dependencies = [
+    "numpy>=1.24",           # code works with NumPy 1.x and 2.x
+    "scipy>=1.15",           # tiny_useful_lib.equations uses scipy.interpolate.AAA (new in SciPy 1.15)
+    "pandas>=1.5",
+    "matplotlib>=3.7",
+    "numdifftools>=0.9.41",  # 0.9.4x works with NumPy 1.x; 0.10 and newer need NumPy 2
+    "tqdm",
+]
+
+[project.optional-dependencies]
+# Only for tiny_useful_dyn/solver_torch and tiny_useful_dyn/solver_tensorflow, e.g.  pip install -e ".[torch]"
+torch = ["torch>=1.11"]             # solver_torch uses torch.adjoint (new in 1.11)
+tensorflow = ["tensorflow>=2"]      # solver_tensorflow
+
+[tool.hatch.build.targets.wheel]
+packages = ["tiny_useful_lib", "tiny_useful_dyn"]
+
+[tool.hatch.build]
+# Editable install = this repo folder is added to sys.path by a plain .pth file.
+# Pylance reads such .pth files (it cannot follow the import hooks some other tools use).
+dev-mode-dirs = ["."]
