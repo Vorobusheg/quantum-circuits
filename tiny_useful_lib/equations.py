@@ -326,11 +326,11 @@ def lambda_of_f(f, Z_0=50, c_cpw=169):
 def Z_of_cpw(f, L, c, Z_l, Z_0=50):
     """
        compute effective impedance of a loaded cpw:
-          __________________________          ___
-         |                                   |
-        Z_l         Z_0, c            --->   Z
-         |__________________________         |___
-                       L
+           __________________________          ___
+          |                                   |
+         Z_l         Z_0, c            --->   Z
+          |__________________________         |___
+                        L
 
        Parameters:
 
@@ -452,11 +452,11 @@ def find_Y_zeros(Y, band, dw_frac=0.1, n_scan=6001, n_aaa=4001, tolY=1e-8):
 def f_of_resonator_cpw(L, c, Z_in, Z_out, Z_0=50, f_bounds=[0.1, 10]):
     """
        compute frequencies of lossless cpw rersonator modes:
-          __________________________
-         |                          |
-       Z_in         Z_0, c         Z_out
-         |__________________________|
-                       L
+           __________________________
+          |                          |
+        Z_in         Z_0, c         Z_out
+          |__________________________|
+                        L
        compute effective Im{Y} at 1/pi of L and then solve Y(omega) = 0
 
        Parameters:
@@ -532,11 +532,11 @@ def kappa_osc_mw(f, C, C_g, C_in=None, Z_in=50, Z_out=50, Z_0=50,
        of two oscillators consequencially coupled to feedline as
        shown in the following:
        
-       Z_in(w) --- C_in (optional) -------- --- Z_out(w)
-                                     <-->  |
-                                     dist C_g
-                                           |
-                                          L&C
+        Z_in(w) --- C_in (optional) -------- --- Z_out(w)
+                                      <-->  |
+                                      dist C_g
+                                            |
+                                           L&C
 
        there are to methods available:
        1) 'zeros' – computes equivalent Y(w) function and searches for
@@ -681,15 +681,15 @@ def kappa_osc_via_osc_mw(f_a, f_b, C_a, C_b, C, C_g, C_in=None, Z_in=50, Z_out=5
        of two oscillators consequencially coupled to feedline as
        shown in the following:
        
-       Z_in(w) --- C_in (optional) -------- --- Z_out(w)
-                                     <-->  |
-                                     dist  C
-                                           |
-                                        L_a&C_a
-                                           |
-                                          C_g
-                                           |
-                                        L_b&C_b
+        Z_in(w) --- C_in (optional) -------- --- Z_out(w)
+                                      <-->  |
+                                      dist  C
+                                            |
+                                         L_a&C_a
+                                            |
+                                           C_g
+                                            |
+                                         L_b&C_b
 
        there are to methods available:
        1) 'zeros' – computes equivalent Y(w) function and searches for
@@ -847,17 +847,17 @@ def kappa_osc_via_osc_eq(f_a, f_b, g, kappa_a, regime='capacitor', C_in=0, dist_
        of two oscillators consequencially coupled to feedline as
        shown in the following:
 
-       feedline IN --- C_in (optional) -------- --- feedline OUT
-                                         <-->  |
-                                         dist  C
-                                               |
-                                          oscillator A
-                                         (f_a, kappa_a)
-                                               |
-                                               g
-                                               |
-                                          oscillator B
-                                             (f_b)
+        feedline IN --- C_in (optional) -------- --- feedline OUT
+                                          <-->  |
+                                          dist  C
+                                                |
+                                           oscillator A
+                                          (f_a, kappa_a)
+                                                |
+                                                g
+                                                |
+                                           oscillator B
+                                              (f_b)
 
        Use input-output theory similarly to J.Heinsoo
        (DOI: https://doi.org/10.1103/PhysRevApplied.10.034040), but accaunting
@@ -1036,12 +1036,12 @@ def scattering_osc_eq(f, f_a, kappa_a_0, kappa_a_1, gamma_a, regime='pass',
        readout resonator (a) coupled to a feedline.
        The network scheme:
 
-       port 1 --- C_in (optional) --- --- port 0
-                                     |
-                                readout reso 
-                    (f_a, kappa_a_0, kappa_a_1, gamma_a)
-                                     |
-                                   port 2
+        port 1 --- C_in (optional) --- --- port 0
+                                      |
+                                 readout reso 
+                     (f_a, kappa_a_0, kappa_a_1, gamma_a)
+                                      |
+                                    port 2
                                    
        WARNING
        1) The model based on input-output theory and assumes linear 
@@ -1138,17 +1138,17 @@ def scattering_osc_via_osc_eq(f, f_a, f_b, g, kappa_a, kappa_b, gamma_a, gamma_b
        readout resonator (a) coupled to a feedline via  
        bandpass purcell filter (b). The network scheme:
 
-       port 1 --- C_in (optional) --- --- port 0
-                                     |
-                              purcell filter
-                         (f_a, kappa_a, gamma_a)
-                                     |       
-                                     g
-                                     |
-                                readout reso 
-                          (f_b, kappa_b, gamma_b)
-                                     |
-                                   port 2
+        port 1 --- C_in (optional) --- --- port 0
+                                      |
+                               purcell filter
+                          (f_a, kappa_a, gamma_a)
+                                      |       
+                                      g
+                                      |
+                                 readout reso 
+                           (f_b, kappa_b, gamma_b)
+                                      |
+                                    port 2
 
        This model is inspired by one decribed by J. Heinsoo in 
        DOI: https://doi.org/10.1103/PhysRevApplied.10.034040
@@ -1258,10 +1258,10 @@ def transmission_line_dressing_eq(f, kappa, regime='pass', C_in=None, dist_by_la
        compute dressed f and kappa (at f_s frequency point) 
        for an oscillator coupled to transmission line:
 
-       port 1 --- C_in (optional) --- --- port 0
-                                     |
-                                   reso 
-                                (f, kappa)
+        port 1 --- C_in (optional) --- --- port 0
+                                      |
+                                    reso 
+                                 (f, kappa)
                                    
        WARNING
        1) The model based on input-output theory and assumes linear 
@@ -1323,10 +1323,10 @@ def transmission_line_baring_eq(f, kappa, regime='pass', C_in=None, dist_by_lamb
        f and kappa (at f_s frequency point) for an oscillator 
        coupled to transmission line:
 
-       port 1 --- C_in (optional) --- --- port 0
-                                     |
-                                   reso 
-                                (f, kappa)
+        port 1 --- C_in (optional) --- --- port 0
+                                      |
+                                    reso 
+                                 (f, kappa)
                                    
        WARNING
        1) The model based on input-output theory and assumes linear 
@@ -1389,19 +1389,19 @@ def kappa_osc_via_2_osc_mw(f_a, f_b, f_c, C_a, C_b, C_c, C, C_ga, C_gb, C_in=Non
        of three oscillators sequentially coupled to feedline as
        shown in the following:
        
-       Z_in(w) --- C_in (optional) -------- --- Z_out(w)
-                                     <-->  |
-                                     dist  C
-                                           |
-                                        L_a&C_a
-                                           |
-                                          C_ga
-                                           |
-                                        L_b&C_b
-                                           |
-                                          C_gb
-                                           |
-                                        L_c&C_c
+         Z_in(w) --- C_in (optional) -------- --- Z_out(w)
+                                       <-->  |
+                                       dist  C
+                                             |
+                                          L_a&C_a
+                                             |
+                                            C_ga
+                                             |
+                                          L_b&C_b
+                                             |
+                                            C_gb
+                                             |
+                                          L_c&C_c
 
        there are two methods available:
        1) 'zeros' – computes equivalent Y(w) function (admittance seen 

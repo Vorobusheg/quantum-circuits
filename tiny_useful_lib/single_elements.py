@@ -271,10 +271,10 @@ def transmon_L(Ej, Ec, Ecj, El, truncation=10, grid=None, N=None, Q=0, rounding=
        diagonalize transmon with sequential inductance, return spectrum
        and operators in diagonalized basis. Circuit:
  
-       0_ L (El) _1________
-       |          |        |
-      C (Ec)     X (Ej)  Cj (Ecj)
-       |__________|________|
+        0_ L (El) _1________
+        |          |        |
+       C (Ec)     X (Ej)  Cj (Ecj)
+        |__________|________|
  
        Variables definitions:
        (φ, n) and (θ, m)
